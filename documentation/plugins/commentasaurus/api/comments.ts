@@ -6,12 +6,13 @@ export async function getComments(
   repoName: string,
   repoId: string,
   categoryId: string,
-  page: string
+  page: string,
+  permissionLevel: string
 ): Promise<{ comments?: Comment[]; error?: string }> {
   try {
     const encodedPage = encodeURIComponent(page);
     const res = await fetch(
-      `${apiUrl}/${org}/${repoName}/${encodedPage}/comments?category_id=${categoryId}&repo_id=${repoId}`,
+      `${apiUrl}/${org}/${repoName}/${encodedPage}/comments?category_id=${categoryId}&repo_id=${repoId}&permission_level=${permissionLevel}`,
       {
         credentials: "include",
         method: "GET",
@@ -25,7 +26,6 @@ export async function getComments(
     }
 
     const data = await res.json();
-    console.log(data);
 
     if (data == null) {
       return {

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { PositionedComment, Comment, BaseComment } from "../../types";
 import { useSelection } from "../../hooks/useSelection";
 import { useUser } from "../../contexts/UserContext";
@@ -12,10 +19,6 @@ import MDXContent from "@theme/MDXContent";
 import styles from "./styles.module.css";
 import { createPortal } from "react-dom";
 import type { Props } from "@theme/DocItem/Content";
-
-// I Should recalc this at some point
-const COMMENT_CARD_HEIGHT = 150;
-const COMMENT_CARD_SPACING = 20;
 
 export default function ContentWithComments({ children }: Props) {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -67,7 +70,8 @@ export default function ContentWithComments({ children }: Props) {
             repoName,
             repoID,
             repoCategoryId,
-            window.location.pathname
+            window.location.pathname,
+            commentPermission
           );
 
         if (loadError) {
@@ -115,22 +119,6 @@ export default function ContentWithComments({ children }: Props) {
     [clearSelection]
   );
 
-  const getCommentPositions = (comments: Comment[]) => {
-    const sorted = [...comments].sort((a, b) => a.y - b.y);
-    let lastY = 0;
-    return sorted.map((c) => {
-      let top = c.y - 270;
-      if (top < lastY) top = lastY;
-      lastY = top + COMMENT_CARD_HEIGHT + COMMENT_CARD_SPACING;
-      return { ...c, top };
-    });
-  };
-
-  const positionedComments = useMemo(
-    () => getCommentPositions(comments),
-    [comments]
-  );
-
   const onResolveComment = (comment: BaseComment) => {
     const resolve = async () => {
       const { error } = await resolveComment(
@@ -151,6 +139,7 @@ export default function ContentWithComments({ children }: Props) {
 
   const handleAddCommentClick = useCallback(() => {
     if (!selectionInfo) return;
+    if (!showSidebar) setShowSidebar(true);
     const draft: PositionedComment = {
       id: crypto.randomUUID(),
       page: window.location.pathname,
@@ -162,6 +151,7 @@ export default function ContentWithComments({ children }: Props) {
       top: selectionInfo.y - 270,
       resolved: false,
       user: user.name,
+      createdAt: Date.now().toString(),
     };
     setDraftComment(draft);
   }, [selectionInfo]);
@@ -211,11 +201,11 @@ export default function ContentWithComments({ children }: Props) {
         <CommentsSidebar
           canSeeComments={canSeeComments}
           showSidebar={showSidebar}
-          setShowSidebar={handleSetShowSidebar}
           draftComment={draftComment}
+          comments={comments}
+          setShowSidebar={handleSetShowSidebar}
           setDraftComment={setDraftComment}
           handleAddComment={handleAddComment}
-          positionedComments={positionedComments}
           onResolveComment={onResolveComment}
         />
       </div>
